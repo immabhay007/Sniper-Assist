@@ -1,0 +1,29 @@
+# Web API
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+
+# Config & validation
+tzdata>=2024.1
+python-dotenv>=1.0.1
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+email-validator>=2.2.0
+
+# Database (Azure SQL Server)
+sqlalchemy>=2.0.36
+alembic>=1.14.0
+pyodbc>=5.2.0
+
+# Auth
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+
+# HTTP clients (external APIs e.g. AISensy)
+httpx>=0.28.0
+
+# Azure Blob Storage (logos, receipts)
+azure-storage-blob>=12.24.0
+
+# Email (Zepto / SMTP)
+aiosmtplib>=3.0.2

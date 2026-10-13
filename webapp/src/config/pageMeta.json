@@ -1,0 +1,84 @@
+{
+  "default": {
+    "title": "Sniper Assist",
+    "description": "Manage fund deposits, expenses, and category-wise balances in one place."
+  },
+  "routes": {
+    "/": {
+      "title": "Sniper Assist",
+      "description": "Sniper Assist — fund and expense management."
+    },
+    "/dashboard": {
+      "title": "Dashboard",
+      "description": "Overview of deposits, spending, and fund balance across categories."
+    },
+    "/funds": {
+      "title": "Fund Deposits",
+      "description": "Log and review deposits allocated to expense categories."
+    },
+    "/funds/log": {
+      "title": "Log deposit",
+      "description": "Record a new fund deposit for a category."
+    },
+    "/fund-transactions": {
+      "title": "Fund Transactions",
+      "description": "View credits and debits grouped by category."
+    },
+    "/expenses": {
+      "title": "Expense Ledger",
+      "description": "Track expenses by category with receipts and payment details."
+    },
+    "/expenses/log": {
+      "title": "Log expense",
+      "description": "Record a new expense against a category."
+    },
+    "/fund-balance": {
+      "title": "Fund Balance",
+      "description": "Category-wise deposited, spent, and remaining balances."
+    },
+    "/reports": {
+      "title": "Reports",
+      "description": "Download and review monthly fund and expense reports."
+    },
+    "/categories": {
+      "title": "Categories",
+      "description": "Create and manage expense categories, icons, and budgets."
+    },
+    "/users": {
+      "title": "Team",
+      "description": "Onboard and manage team members."
+    },
+    "/users/:userId/permissions": {
+      "title": "Member permissions",
+      "description": "Edit team member details and menu access."
+    },
+    "/roles": {
+      "title": "Roles",
+      "description": "Manage roles and access control for the application."
+    },
+    "/menus": {
+      "title": "Menus",
+      "description": "Register application sidebar menus for permissions."
+    },
+    "/settings": {
+      "title": "Settings",
+      "description": "Application preferences and account configuration."
+    },
+    "/login": {
+      "title": "Sign in",
+      "description": "Sign in to your Sniper Assist."
+    },
+    "/access-request": {
+      "title": "Access pending",
+      "description": "Your account is active but no application modules are assigned yet."
+    },
+    "/forgot-password": {
+      "title": "Forgot password",
+      "description": "Reset your Sniper Assist password."
+    },
+    "/change-password": {
+      "title": "Change password",
+      "description": "Update your Sniper Assist password."
+    }
+  }
+}

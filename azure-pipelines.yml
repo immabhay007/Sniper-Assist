@@ -1,0 +1,372 @@
+trigger:
+  - develop
+  - main
+
+variables:
+  vmImageName: "ubuntu-latest"
+  projectRoot: $(System.DefaultWorkingDirectory)
+  # Must match App Service Linux stack (Log stream shows e.g. Python 3.11.x).
+  pythonVersion: "3.14"
+  # Vite 8+ needs Node >= 20.19 (reference used 18.x; this project requires a newer runtime)
+  nodeVersion: "24.9.0"
+  ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
+    deployEnvironment: "cleo-care-dev-ci" 
+    azureSubscription: "cleo-care-dev-ci-azureconnection"
+    backendAppName: "cleo-care-api-dev-ci-as"
+    webAppName: "cleo-care-web-dev-ci-as"
+  ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+    deployEnvironment: "cleo-care-prod-ci"
+    azureSubscription: "cleo-care-prod-ci-azureconnection"
+    backendAppName: "cleo-care-api-prod-ci-as"
+    webAppName: "cleo-care-web-prod-ci-as"
+
+stages:
+  - stage: Build
+    displayName: Build Stage
+    jobs:
+      - job: BuildJob
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(pythonVersion)"
+            displayName: "Use Python $(pythonVersion)"
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(nodeVersion)"
+            displayName: "Use Node.js $(nodeVersion)"
+
+          - script: |
+              if [ -f "$(projectRoot)/backend/startup.sh" ]; then
+                chmod +x backend/startup.sh
+              fi
+            workingDirectory: $(projectRoot)
+            displayName: "Ensure startup.sh executable"
+
+          - task: DeleteFiles@1
+            displayName: "Clean build artifacts"
+            inputs:
+              SourceFolder: "$(projectRoot)"
+              Contents: |
+                **/__pycache__/**
+                **/.pytest_cache/**
+                **/*.pyc
+                venv/**
+                antenv/**
+                webapp/node_modules/**
+
+          - task: CopyFiles@2
+            displayName: "Prepare backend artifact contents"
+            inputs:
+              SourceFolder: "$(projectRoot)/backend"
+              Contents: |
+                **
+                !venv/**
+                !antenv/**
+                !**/__pycache__/**
+                !**/.pytest_cache/**
+                !**/*.pyc
+                !**/*.pyo
+                !**/*.pyd
+              TargetFolder: "$(Build.ArtifactStagingDirectory)/backend"
+
+          - script: |
+              echo "Preparing environment-specific .env files for backend..."
+              if [ -f "$(projectRoot)/backend/.env.develop" ]; then
+                cp "$(projectRoot)/backend/.env.develop" "$(Build.ArtifactStagingDirectory)/backend/.env.develop"
+                echo "Copied backend/.env.develop"
+              fi
+              if [ -f "$(projectRoot)/backend/.env.prod" ]; then
+                cp "$(projectRoot)/backend/.env.prod" "$(Build.ArtifactStagingDirectory)/backend/.env.prod"
+                echo "Copied backend/.env.prod"
+              fi
+            displayName: "Copy backend environment-specific .env files"
+
+          - script: |
+              if [ -d "$(projectRoot)/backend/alembic/versions" ]; then
+                echo "Copying Alembic versions..."
+                mkdir -p "$(Build.ArtifactStagingDirectory)/backend/alembic"
+                cp -R "$(projectRoot)/backend/alembic/versions" "$(Build.ArtifactStagingDirectory)/backend/alembic/"
+              else
+                echo "Alembic versions directory not found; skipping copy."
+              fi
+            displayName: "Ensure Alembic versions included"
+
+          # App Service Oryx expects /home/site/wwwroot/antenv when no remote build runs.
+          # Without this folder, gunicorn uses the base image Python and uvicorn is missing.
+          - script: |
+              set -e
+              ART_BACKEND="$(Build.ArtifactStagingDirectory)/backend"
+              cd "$ART_BACKEND"
+              python -m venv antenv
+              . antenv/bin/activate
+              python -m pip install --upgrade pip setuptools wheel
+              pip install --no-cache-dir -r requirements.txt
+            displayName: "Create antenv in backend artifact (uvicorn + gunicorn for App Service)"
+
+          - task: CopyFiles@2
+            displayName: "Prepare webapp artifact contents"
+            inputs:
+              SourceFolder: "$(projectRoot)/webapp"
+              Contents: |
+                **
+                !.git/**
+                !node_modules/**
+                !dist/**
+                !coverage/**
+                !.DS_Store
+              TargetFolder: "$(Build.ArtifactStagingDirectory)/webapp"
+
+          - task: ArchiveFiles@2
+            displayName: "Archive backend files"
+            inputs:
+              rootFolderOrFile: "$(Build.ArtifactStagingDirectory)/backend"
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/backend-$(Build.BuildId).zip
+              replaceExistingArchive: true
+
+          - task: ArchiveFiles@2
+            displayName: "Archive webapp files"
+            inputs:
+              rootFolderOrFile: "$(Build.ArtifactStagingDirectory)/webapp"
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/webapp-$(Build.BuildId).zip
+              replaceExistingArchive: true
+
+          - upload: $(Build.ArtifactStagingDirectory)/backend-$(Build.BuildId).zip
+            displayName: "Upload backend package"
+            artifact: backend-drop
+
+          - upload: $(Build.ArtifactStagingDirectory)/webapp-$(Build.BuildId).zip
+            displayName: "Upload webapp package"
+            artifact: webapp-drop
+
+  - stage: Deploy_Dev
+    displayName: "Deploy to Develop Environment"
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DevelopDeployment
+        pool:
+          vmImage: $(vmImageName)
+        environment: "$(deployEnvironment)"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: "$(pythonVersion)"
+                  displayName: "Use Python version"
+
+                - download: current
+                  artifact: backend-drop
+                  displayName: "Download backend artifacts"
+
+                - download: current
+                  artifact: webapp-drop
+                  displayName: "Download webapp artifacts"
+
+                - script: |
+                    echo "Copying .env.develop to .env for Backend Development environment..."
+                    ZIP_FILE="$(Pipeline.Workspace)/backend-drop/backend-$(Build.BuildId).zip"
+                    if [ -f "$ZIP_FILE" ]; then
+                      EXTRACT_DIR="$(Agent.TempDirectory)/backend_extracted"
+                      rm -rf "$EXTRACT_DIR"
+                      mkdir -p "$EXTRACT_DIR"
+                      unzip -q "$ZIP_FILE" -d "$EXTRACT_DIR" || true
+                      if [ -f "$EXTRACT_DIR/.env.develop" ]; then
+                        cp "$EXTRACT_DIR/.env.develop" "$EXTRACT_DIR/.env"
+                        echo "Successfully copied .env.develop to .env"
+                        cd "$EXTRACT_DIR"
+                        rm -f "$ZIP_FILE"
+                        zip -ry "$ZIP_FILE" . -q
+                        echo "Updated backend package with .env file"
+                      else
+                        echo "Warning: .env.develop not found in backend package"
+                      fi
+                    else
+                      echo "Error: Backend package file not found at $ZIP_FILE"
+                      exit 1
+                    fi
+                  displayName: "Set .env file for Backend Development"
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: "$(nodeVersion)"
+                  displayName: "Use Node.js $(nodeVersion)"
+
+                - script: |
+                    echo "Building webapp for Development environment..."
+                    ZIP_FILE="$(Pipeline.Workspace)/webapp-drop/webapp-$(Build.BuildId).zip"
+                    if [ -f "$ZIP_FILE" ]; then
+                      EXTRACT_DIR="$(Agent.TempDirectory)/webapp_extracted"
+                      rm -rf "$EXTRACT_DIR"
+                      mkdir -p "$EXTRACT_DIR"
+                      unzip -q "$ZIP_FILE" -d "$EXTRACT_DIR" || true
+                      cd "$EXTRACT_DIR"
+                      if [ -f ".env.develop" ]; then
+                        cp ".env.develop" ".env"
+                        echo "Successfully copied .env.develop to .env"
+                      else
+                        echo "Error: .env.develop not found in webapp package"
+                        exit 1
+                      fi
+                      echo "Installing dependencies..."
+                      npm ci
+                      echo "Running npm run build..."
+                      npm run build
+                      DEPLOY_DIR="$(Agent.TempDirectory)/webapp_deploy"
+                      rm -rf "$DEPLOY_DIR"
+                      mkdir -p "$DEPLOY_DIR"
+                      cp -R dist "$DEPLOY_DIR/"
+                      cp server-adapter.mjs "$DEPLOY_DIR/"
+                      cp package.json package-lock.json "$DEPLOY_DIR/"
+                      cd "$DEPLOY_DIR"
+                      echo "Installing production dependencies for runtime..."
+                      npm ci --omit=dev
+                      npm pkg set scripts.start="node server-adapter.mjs"
+                      rm -f "$ZIP_FILE"
+                      zip -r "$ZIP_FILE" . -q
+                      echo "Created deployment package (dist + server-adapter + node_modules)"
+                    else
+                      echo "Error: Webapp package file not found at $ZIP_FILE"
+                      exit 1
+                    fi
+                  displayName: "Build Webapp for Development"
+
+                - task: AzureWebApp@1
+                  displayName: "Deploy Backend API"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: "webAppLinux"
+                    appName: "$(backendAppName)"
+                    package: "$(Pipeline.Workspace)/backend-drop/backend-$(Build.BuildId).zip"
+                    startUpCommand: "python -m gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 600 --access-logfile '-' --error-logfile '-'"
+
+                - task: AzureWebApp@1
+                  displayName: "Deploy Web App"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: "webAppLinux"
+                    appName: "$(webAppName)"
+                    package: "$(Pipeline.Workspace)/webapp-drop/webapp-$(Build.BuildId).zip"
+                    appSettings: "-SCM_DO_BUILD_DURING_DEPLOYMENT false"
+                    startUpCommand: "npm start"
+
+  - stage: Deploy_Prod
+    displayName: "Deploy to Production Environment"
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: ProductionDeployment
+        pool:
+          vmImage: $(vmImageName)
+        environment: "$(deployEnvironment)"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: "$(pythonVersion)"
+                  displayName: "Use Python version"
+
+                - download: current
+                  artifact: backend-drop
+                  displayName: "Download backend artifacts"
+
+                - download: current
+                  artifact: webapp-drop
+                  displayName: "Download webapp artifacts"
+
+                - script: |
+                    echo "Copying .env.prod to .env for Backend Production environment..."
+                    ZIP_FILE="$(Pipeline.Workspace)/backend-drop/backend-$(Build.BuildId).zip"
+                    if [ -f "$ZIP_FILE" ]; then
+                      EXTRACT_DIR="$(Agent.TempDirectory)/backend_extracted"
+                      rm -rf "$EXTRACT_DIR"
+                      mkdir -p "$EXTRACT_DIR"
+                      unzip -q "$ZIP_FILE" -d "$EXTRACT_DIR" || true
+                      if [ -f "$EXTRACT_DIR/.env.prod" ]; then
+                        cp "$EXTRACT_DIR/.env.prod" "$EXTRACT_DIR/.env"
+                        echo "Successfully copied .env.prod to .env"
+                        cd "$EXTRACT_DIR"
+                        rm -f "$ZIP_FILE"
+                        zip -ry "$ZIP_FILE" . -q
+                        echo "Updated backend package with .env file"
+                      else
+                        echo "Warning: .env.prod not found in backend package"
+                      fi
+                    else
+                      echo "Error: Backend package file not found at $ZIP_FILE"
+                      exit 1
+                    fi
+                  displayName: "Set .env file for Backend Production"
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: "$(nodeVersion)"
+                  displayName: "Use Node.js $(nodeVersion)"
+
+                - script: |
+                    echo "Building webapp for Production environment..."
+                    ZIP_FILE="$(Pipeline.Workspace)/webapp-drop/webapp-$(Build.BuildId).zip"
+                    if [ -f "$ZIP_FILE" ]; then
+                      EXTRACT_DIR="$(Agent.TempDirectory)/webapp_extracted"
+                      rm -rf "$EXTRACT_DIR"
+                      mkdir -p "$EXTRACT_DIR"
+                      unzip -q "$ZIP_FILE" -d "$EXTRACT_DIR" || true
+                      cd "$EXTRACT_DIR"
+                      if [ -f ".env.prod" ]; then
+                        cp ".env.prod" ".env"
+                        echo "Successfully copied .env.prod to .env"
+                      else
+                        echo "Error: .env.prod not found in webapp package"
+                        exit 1
+                      fi
+                      echo "Installing dependencies..."
+                      npm ci
+                      echo "Running npm run build..."
+                      npm run build
+                      DEPLOY_DIR="$(Agent.TempDirectory)/webapp_deploy"
+                      rm -rf "$DEPLOY_DIR"
+                      mkdir -p "$DEPLOY_DIR"
+                      cp -R dist "$DEPLOY_DIR/"
+                      cp server-adapter.mjs "$DEPLOY_DIR/"
+                      cp package.json package-lock.json "$DEPLOY_DIR/"
+                      cd "$DEPLOY_DIR"
+                      echo "Installing production dependencies for runtime..."
+                      npm ci --omit=dev
+                      npm pkg set scripts.start="node server-adapter.mjs"
+                      rm -f "$ZIP_FILE"
+                      zip -r "$ZIP_FILE" . -q
+                      echo "Created deployment package (dist + server-adapter + node_modules)"
+                    else
+                      echo "Error: Webapp package file not found at $ZIP_FILE"
+                      exit 1
+                    fi
+                  displayName: "Build Webapp for Production"
+
+                - task: AzureWebApp@1
+                  displayName: "Deploy Backend API"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: "webAppLinux"
+                    appName: "$(backendAppName)"
+                    package: "$(Pipeline.Workspace)/backend-drop/backend-$(Build.BuildId).zip"
+                    startUpCommand: "python -m gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 600 --access-logfile '-' --error-logfile '-'"
+
+                - task: AzureWebApp@1
+                  displayName: "Deploy Web App"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: "webAppLinux"
+                    appName: "$(webAppName)"
+                    package: "$(Pipeline.Workspace)/webapp-drop/webapp-$(Build.BuildId).zip"
+                    appSettings: "-SCM_DO_BUILD_DURING_DEPLOYMENT false"
+                    startUpCommand: "npm start"

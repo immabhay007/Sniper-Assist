@@ -1,0 +1,114 @@
+################################
+# Backend (Python)
+################################
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python cache / build
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.cpython-*.pyc
+*.cpython-*.pyo
+*$py.class
+*.so
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+MANIFEST
+
+# Tests / coverage
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest_cache/
+.cache
+nosetests.xml
+coverage.xml
+
+# Logs
+*.log
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Django / Flask
+db.sqlite3
+local_settings.py
+instance/
+.webassets-cache
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Celery
+celerybeat-schedule
+
+################################
+# Webapp (Node / Vite / React)
+################################
+
+node_modules/
+dist/
+dist-ssr/
+build/
+.pnp/
+.pnp.js
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files
+*.local
+
+################################
+# IDEs & Editors
+################################
+
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+################################
+# OS
+################################
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+################################
+# Cloud / Secrets
+################################
+
+.azure/
+firebase-credentials.json
