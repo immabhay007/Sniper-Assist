@@ -21,11 +21,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
 
     # Drop existing FK on status_after_update
-    op.drop_constraint(
-        "FK__ticket_no__statu__367C1819",
-        "ticket_notes",
-        type_="foreignkey",
-    )
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    for fk in inspector.get_foreign_keys("ticket_notes"):
+        if fk["constrained_columns"] == ["status_after_update"]:
+            op.drop_constraint(fk["name"], "ticket_notes", type_="foreignkey")
+            break
 
     # Remove old columns
     op.drop_column("ticket_notes", "status_after_update")

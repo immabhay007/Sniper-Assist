@@ -12,8 +12,8 @@ const initializeEnvironment = () => {
     DATE_FORMAT: import.meta.env.VITE_DATE_FORMAT || "DD/MM/YYYY",
     AZURE_STORAGE_BASE_URL: getAzureStorageBaseUrl(),
     AZURE_STORAGE_CONTAINER: getAzureStorageContainer(),
-    CLEO_LOGO_URL: getSniperLogoUrl(),
-    CLEO_FAVICON_URL: getSniperFaviconUrl(),
+    SNIPER_LOGO_URL: getSniperLogoUrl(),
+    SNIPER_FAVICON_URL: getSniperFaviconUrl(),
   };
 
   if (env.ENABLE_LOGS) {
