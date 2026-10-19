@@ -75,7 +75,7 @@ class Settings(BaseSettings):
             f"DATABASE={self.db_name};"
             f"UID={self.db_user};"
             f"PWD={self.db_password};"
-            "Encrypt=yes;"
+            "Encrypt=no;"
             "TrustServerCertificate=no;"
         )
         return f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_connect)}"

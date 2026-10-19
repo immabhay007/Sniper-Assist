@@ -43,8 +43,8 @@ def upgrade() -> None:
     )
 
     # 3. Drop the old customer_name columns
-    op.drop_column("enquiries", "customer_name")
-    op.drop_column("complaints", "customer_name")
+    op.drop_column("enquiries", "customer_name", if_exists=True)
+    op.drop_column("complaints", "customer_name", if_exists=True)
 
 
 def downgrade() -> None:

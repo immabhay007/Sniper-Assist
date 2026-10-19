@@ -1,12 +1,19 @@
 import { getSniperLogoUrl } from "@/utils/azureStorage";
 
-export default function AuthBranding({ title, subtitle }) {
+export default function AuthBranding({ title, subtitle }: { title?: string; subtitle?: string }) {
   return (
     <div className="text-center mb-6">
       <img
-        src={getSniperLogoUrl()}
+        src="/sniper-logo.png"
         alt="Sniper"
-        className="h-14 w-auto max-w-[220px] mx-auto object-contain"
+        style={{
+          display: "block",
+          width: 250,
+          height: "auto",
+          maxWidth: "100%",
+          margin: "0 auto",
+        }}
+        className="object-contain"
       />
       {title ? (
         <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-foreground">{title}</h1>

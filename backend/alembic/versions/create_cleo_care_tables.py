@@ -296,6 +296,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["status_after_update"],
             ["status_master.id"],
+            name="fk_ticket_notes_status_after_update",
         ),
         sa.ForeignKeyConstraint(
             ["created_by"],
