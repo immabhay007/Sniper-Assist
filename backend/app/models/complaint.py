@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Text, ForeignKey, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -38,7 +38,7 @@ class Complaint(Base):
     first_response_at = Column(DateTime, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
-    is_deleted = Column(Boolean, nullable=False, server_default='0')
+    is_deleted = Column(Boolean, nullable=False, server_default=false())
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     next_action_item = Column(Text, nullable=True)

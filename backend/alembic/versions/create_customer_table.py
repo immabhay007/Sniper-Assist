@@ -29,9 +29,9 @@ def upgrade() -> None:
         sa.Column("address", sa.NVARCHAR(length=500), nullable=True),
         sa.Column("city", sa.NVARCHAR(length=100), nullable=True),
         sa.Column("state", sa.NVARCHAR(length=100), nullable=True),
-        sa.Column("is_new_customer", sa.Boolean, nullable=False, server_default=sa.text("0")),
-        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("1")),
-        sa.Column("is_deleted", sa.Boolean, nullable=False, server_default=sa.text("0")),
+        sa.Column("is_new_customer", sa.Boolean, nullable=False, server_default=sa.text("false")),
+        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("true")),
+        sa.Column("is_deleted", sa.Boolean, nullable=False, server_default=sa.text("false")),
         sa.Column(
             "created_at",
             sa.DateTime,

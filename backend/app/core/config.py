@@ -2,7 +2,6 @@
 
 from functools import lru_cache
 from urllib.parse import quote_plus
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,6 +30,11 @@ class Settings(BaseSettings):
         validation_alias="DB_DRIVER",
     )
 
+    database_url_override: str | None = Field(
+        default=None,
+        validation_alias="DATABASE_URL",
+    )
+    
     # Auth
     secret_key: str = Field(validation_alias="SECRET_KEY")
     algorithm: str = Field(default="HS256", validation_alias="ALGORITHM")
@@ -68,7 +72,10 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        """SQLAlchemy URL for Azure SQL Server via pyodbc."""
+        """Return an explicit database URL or build the SQL Server URL."""
+        if self.database_url_override:
+            return self.database_url_override
+
         odbc_connect = (
             f"DRIVER={{{self.odbc_driver}}};"
             f"SERVER={self.db_server};"
