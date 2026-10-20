@@ -22,12 +22,12 @@ def upgrade() -> None:
     # Add is_deleted column to enquiries
     op.add_column(
         "enquiries",
-        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("false"))
     )
     # Add is_deleted column to complaints
     op.add_column(
         "complaints",
-        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("false"))
     )
 
 
