@@ -80,7 +80,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Environment files
+# Environment files / secrets
+.env
+.env.*
+!.env.example
 *.local
 
 ################################
