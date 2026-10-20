@@ -6,6 +6,8 @@ from pathlib import Path
 
 from alembic import context
 from sqlalchemy import create_engine, pool
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.types import NVARCHAR
 
 # Ensure backend root is on sys.path
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +25,17 @@ target_metadata = None
 
 # Load backend/.env before building the engine
 settings = load_environment()
+
+
+# ---------------------------------------------------------------------------
+# PostgreSQL compatibility: compile NVARCHAR as VARCHAR
+# ---------------------------------------------------------------------------
+@compiles(NVARCHAR, "postgresql")
+def _compile_nvarchar_postgresql(type_, compiler, **kw):
+    """Render VARCHAR instead of NVARCHAR on PostgreSQL."""
+    if type_.length:
+        return f"VARCHAR({type_.length})"
+    return "VARCHAR"
 
 
 def run_migrations_offline() -> None:

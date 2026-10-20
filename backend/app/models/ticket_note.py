@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
+    false,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -71,7 +72,7 @@ class TicketNote(Base):
         Boolean,
         nullable=False,
         default=False,
-        server_default="0",
+        server_default=false(),
     )
 
     created_at = Column(

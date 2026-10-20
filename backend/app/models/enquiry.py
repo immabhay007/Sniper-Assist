@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Text, ForeignKey, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -27,7 +27,7 @@ class Enquiry(Base):
     status_id = Column(BigInteger, ForeignKey("status_master.id"), nullable=False, index=True)
     sla_deadline = Column(DateTime, nullable=True)
     sla_status = Column(String(50), nullable=True)
-    is_deleted = Column(Boolean, nullable=False, server_default='0')
+    is_deleted = Column(Boolean, nullable=False, server_default=false())
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
