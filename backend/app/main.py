@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
-
+from app.db.session import get_engine
+from sqlalchemy import text
 from app.api.v1.router import api_router
 from app.core.initialize_environment import load_environment, settings
 
@@ -78,3 +79,14 @@ def health():
         "env": settings.env,
         "database": settings.db_name,
     }
+
+@app.get("/api/debug/database")
+def debug_database():
+    with get_engine().connect() as connection:
+        database = connection.execute(
+            text("SELECT current_database()")
+        ).scalar_one()
+
+    logger.info("Actual connected database: %s", database)
+
+    return {"database": database}
