@@ -89,4 +89,4 @@ def debug_database():
 
     logger.info("Actual connected database: %s", database)
 
-    return {"database": database}
+    return {"database": database} 
