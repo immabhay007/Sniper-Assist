@@ -261,3 +261,5 @@ export function MobileSidebar({
     </div>
   );
 }
+
+export default Sidebar;
