@@ -33,8 +33,8 @@ def get_all_customers(
     Retrieve all active, non-deleted customers.
     """
     customers = db.query(Customer).filter(
-        Customer.is_deleted == 0,
-        Customer.is_active == 1
+        Customer.is_deleted.is_(False),
+        Customer.is_active.is_(True),
     ).all()
     return customers
 
@@ -46,9 +46,7 @@ def get_all(
     _user_id: int = _view,
 ):
 
-    query = db.query(Customer).filter(
-        Customer.is_deleted == 0
-    )
+    query = db.query(Customer).filter(Customer.is_deleted.is_(False))
     
     if search:
         query = query.filter(

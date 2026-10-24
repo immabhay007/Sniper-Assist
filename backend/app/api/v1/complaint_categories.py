@@ -18,7 +18,7 @@ _delete = Depends(require_permission("categories", "can_delete"))
 def get_all(db: Session = Depends(get_db), _user_id: int = _view,):
     return (
         db.query(ComplaintCategory)
-        .filter(ComplaintCategory.is_active == 1)
+        .filter(ComplaintCategory.is_active.is_(True))
         .order_by(ComplaintCategory.id)
         .all()
     )
@@ -27,7 +27,7 @@ def get_all(db: Session = Depends(get_db), _user_id: int = _view,):
 def get_one(id: int, db: Session = Depends(get_db), _user_id: int = _view,):
     obj = (
         db.query(ComplaintCategory)
-        .filter(ComplaintCategory.id == id, ComplaintCategory.is_active == 1)   # add active filter
+        .filter(ComplaintCategory.id == id, ComplaintCategory.is_active.is_(True),)   # add active filter
         .first()
     )
     if not obj:
