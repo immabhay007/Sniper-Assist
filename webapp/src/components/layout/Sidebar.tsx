@@ -93,9 +93,9 @@ const initials = fullName
       {/* Brand */}
       <div className="flex justify-center px-5 pt-3 pb-1">
         <img
-          src="https://sniperpublicstorage.blob.core.windows.net/sniperlogo/sniper_logo_transparent.png"
+          src="/sniper-logo.png"
           alt="Sniper"
-          className={`h-auto object-contain ${collapsed ? "w-6" : "w-18"}`}
+          className={`h-auto object-contain ${collapsed ? "w-12" : "w-[125px]"}`}
         />
       </div>
 
