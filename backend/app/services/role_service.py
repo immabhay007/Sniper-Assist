@@ -93,7 +93,10 @@ def delete_role(db: Session, role_id: int) -> bool:
         return False
 
     in_use = db.scalars(
-        select(User).where(User.role_id == role_id, User.is_deleted == False).limit(1)  # noqa: E712
+        select(User).where(
+            User.role == row.role_name,          # ← match by string
+            User.is_deleted == False,            # noqa: E712
+        ).limit(1)
     ).first()
     if in_use:
         raise HTTPException(

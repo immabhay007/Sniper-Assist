@@ -80,14 +80,15 @@ def update_menu(
     return updated
 
 
-# In your service module (e.g., menu_service.py)
-def delete_menu(db: Session, menu_id: int) -> bool:
-    menu = db.query(Menu).filter(Menu.id == menu_id).first()
-    if not menu:
-        return False
-    
-    # Soft delete: mark as deleted and inactive
-    menu.is_deleted = 1
-    menu.is_active = 0
-    db.commit()
-    return True
+@router.delete("/{menu_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_menu(
+    menu_id: int,
+    db: Session = Depends(get_db),
+    _user_id: int = _delete,
+):
+    if not svc.delete_menu(db, menu_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Menu not found",
+        )
+    return None

@@ -18,7 +18,7 @@ _delete = Depends(require_permission("categories", "can_delete"))
 def get_all(db: Session = Depends(get_db), _user_id: int = _view,):
     return (
         db.query(EnquiryCategory)
-        .filter(EnquiryCategory.is_active == True)
+        .filter(EnquiryCategory.is_active.is_(True))
         .order_by(EnquiryCategory.id)
         .all()
     )
@@ -33,7 +33,7 @@ def get_one(
         db.query(EnquiryCategory)
         .filter(
             EnquiryCategory.id == id,
-            EnquiryCategory.is_active == True,
+            EnquiryCategory.is_active.is_(True),
         )
         .first()
     )
@@ -96,5 +96,5 @@ def delete(
         )
 
     # Soft delete
-    obj.is_active = 0
+    obj.is_active = False
     db.commit()

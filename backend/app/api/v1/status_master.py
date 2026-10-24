@@ -16,7 +16,7 @@ def get_all(
 ):
     return (
         db.query(StatusMaster)
-        .filter(StatusMaster.is_active == 1)
+        .filter(StatusMaster.is_active.is_(True))
         .order_by(StatusMaster.id)
         .offset(skip)
         .limit(limit)
@@ -33,7 +33,7 @@ def get_one(
         db.query(StatusMaster)
         .filter(
             StatusMaster.id == id,
-            StatusMaster.is_active == 1
+            StatusMaster.is_active.is_(True),
         )
         .first()
     )
@@ -72,6 +72,6 @@ def delete(id: int, db: Session = Depends(get_db), _user_id: int = Depends(get_c
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Status not found")
     
     # Soft delete: mark as inactive
-    obj.is_active = 0   # or False if boolean
+    obj.is_active = False   # or False if boolean
     db.commit()
     # No return needed, 204 No Content sent automatically

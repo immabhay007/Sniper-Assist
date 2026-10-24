@@ -544,7 +544,7 @@ def delete(id: int, db: Session = Depends(get_db), _user_id: int = Depends(requi
     obj = db.query(Complaint).filter(Complaint.id == id).first()
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Complaint not found")
-    obj.is_deleted = 1 
+    obj.is_deleted = True 
     db.commit()
     return
 
